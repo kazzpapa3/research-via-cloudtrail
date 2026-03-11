@@ -169,4 +169,6 @@ AWS の権限を確認してください：
 
 ## ライセンス
 
-このスクリプトは請求代行業務用に作成されています。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+

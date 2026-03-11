@@ -14,6 +14,7 @@ OPTIONS:
   -r <regions>  Target regions (space-separated, default: all enabled regions)
   -s <days>     Start time in days ago (default: 2)
   -o <prefix>   Output file prefix (default: uses first part of attribute value)
+  -p <profile>  AWS CLI profile name (default: default profile)
   -h            Show this help message
 
 EXAMPLES:
@@ -38,15 +39,17 @@ ATTRIBUTE_VALUES="iam.amazonaws.com ec2.amazonaws.com"
 DAYS_AGO=2
 OUTPUT_PREFIX=""
 REGIONS=""
+PROFILE=""
 
 # オプション解析
-while getopts "k:v:r:s:o:h" opt; do
+while getopts "k:v:r:s:o:p:h" opt; do
   case $opt in
     k) ATTRIBUTE_KEY=$OPTARG ;;
     v) ATTRIBUTE_VALUES=$OPTARG ;;
     r) REGIONS=$OPTARG ;;
     s) DAYS_AGO=$OPTARG ;;
     o) OUTPUT_PREFIX=$OPTARG ;;
+    p) PROFILE=$OPTARG ;;
     h) usage; exit 0 ;;
     *) usage; exit 1 ;;
   esac
@@ -62,11 +65,13 @@ END=$(date +%s)
 
 # リージョン設定（指定がなければ全リージョンを取得）
 if [ -z "$REGIONS" ]; then
-  REGIONS=$(aws ec2 describe-regions --query 'Regions[].RegionName' --output text)
+  REGIONS=$(aws ec2 describe-regions --query 'Regions[].RegionName' --output text ${PROFILE:+--profile "$PROFILE"})
   echo "Target: All enabled regions"
 else
   echo "Target: Specified regions - $REGIONS"
 fi
+
+[ -n "$PROFILE" ] && echo "Profile: $PROFILE"
 
 echo "Search parameters:"
 echo "  AttributeKey: $ATTRIBUTE_KEY"
@@ -103,6 +108,7 @@ for VALUE in $ATTRIBUTE_VALUES; do
       --end-time ${END} \
       --region ${REGION} \
       --lookup-attributes AttributeKey="${ATTRIBUTE_KEY}",AttributeValue="${VALUE}" \
+      ${PROFILE:+--profile "$PROFILE"} \
     | jq -r --arg region "$REGION" '
       .Events[] |= (.CloudTrailEvent |= fromjson)
       | .Events[]

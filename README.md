@@ -1,12 +1,14 @@
+> English follows Japanese.
+
 # CloudTrail イベント検索スクリプト
 
 AWS CloudTrail のイベントを検索し、CSV形式で出力するスクリプトです。
 
 ## 機能
 
-- CloudTrail の lookup-attributes に対応した柔軟な検索
-- 複数のリージョンを一括検索（全リージョン or 指定リージョン）
-- 複数の検索値を同時処理
+- CloudTrail の lookup-attributes に対応した柔軟な検索が可能
+- 複数のリージョンを一括検索（全リージョン or 指定リージョン）可能
+- 複数の検索値を同時処理が可能
 - CSV形式での出力（時刻、イベント名、ユーザー名、IPアドレスなど）
 
 ## 必要な環境
@@ -14,6 +16,11 @@ AWS CloudTrail のイベントを検索し、CSV形式で出力するスクリ�
 - AWS CLI がインストール・設定済みであること
 - `jq` コマンドがインストールされていること
 - CloudTrail の読み取り権限があること
+- ec2:DescribeRegions の権限があること
+
+## ライセンス
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 使い方
 
@@ -184,8 +191,181 @@ AWS の権限を確認してください：
 - `cloudtrail:LookupEvents` 権限が必要です
 - `ec2:DescribeRegions` 権限が必要です
 
-## ライセンス
+
+
+
+---
+
+# CloudTrail Event Search Script
+
+A script that searches AWS CloudTrail events and outputs the results in CSV format.
+
+## Features
+
+- Flexible searching using CloudTrail's lookup-attributes
+- Bulk search across multiple regions (all regions or specific ones)
+- Process multiple search values at once
+- CSV output (timestamp, event name, username, IP address, etc.)
+
+## Prerequisites
+
+- AWS CLI installed and configured
+- `jq` command installed
+- CloudTrail read permissions
+- ec2:DescribeRegions permission
+
+## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Usage
 
+```bash
+./research.sh [OPTIONS]
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-k <key>` | Lookup attribute key | `EventSource` |
+| `-v <values>` | Values to search for (space-separated for multiple values) | `iam.amazonaws.com ec2.amazonaws.com` |
+| `-r <regions>` | Target regions (space-separated for multiple regions) | All enabled regions |
+| `-s <days>` | How many days back to search | `2` |
+| `-o <prefix>` | Output file prefix | Auto-generated |
+| `-h` | Show help message | - |
+
+### Available Lookup Attribute Keys
+
+- `EventId` — Search by a specific event ID
+- `EventName` — Search by event name (e.g., RunInstances, TerminateInstances)
+- `ReadOnly` — Filter by read-only operations (true/false)
+- `Username` — Search by IAM username
+- `ResourceType` — Search by resource type
+- `ResourceName` — Search by resource name
+- `EventSource` — Search by AWS service (e.g., ec2.amazonaws.com)
+- `AccessKeyId` — Search by access key ID
+
+## Examples
+
+### 1. Default run (search EventSource across all regions)
+
+```bash
+./research.sh
+```
+
+Searches for IAM and EC2 events from the past 2 days across all regions.
+
+### 2. Search for specific event names
+
+```bash
+./research.sh -k EventName -v "RunInstances TerminateInstances"
+```
+
+Searches for EC2 instance launch and termination events.
+
+### 3. Search in a specific region only
+
+```bash
+./research.sh -k EventSource -v "s3.amazonaws.com" -r "ap-northeast-1"
+```
+
+Searches for S3 events in the Tokyo region only.
+
+### 4. Search across multiple specified regions
+
+```bash
+./research.sh -k Username -v "admin" -r "us-east-1 ap-northeast-1 eu-west-1"
+```
+
+Searches for a specific user's events across three regions.
+
+### 5. Search the past 7 days
+
+```bash
+./research.sh -k EventSource -v "lambda.amazonaws.com" -s 7
+```
+
+Searches for Lambda events from the past 7 days.
+
+### 6. Search by access key ID
+
+```bash
+./research.sh -k AccessKeyId -v "AKIAIOSFODNN7EXAMPLE" -r "us-east-1"
+```
+
+Searches for usage history of a specific access key.
+
+## Output Files
+
+The script generates CSV files in the following format:
+
+```
+<prefix>_<AttributeKey>_output.csv
+```
+
+Examples:
+- `iam_EventSource_output.csv`
+- `runinstances_EventName_output.csv`
+- `admin_Username_output.csv`
+
+### CSV Columns
+
+| Column | Description |
+|--------|-------------|
+| EventTime | When the event occurred |
+| EventName | Name of the event |
+| Username | IAM username |
+| SourceIPAddress | Source IP address |
+| UserAgent | User agent string |
+| errorCode | Error code (if any) |
+| errorMessage | Error message (if any) |
+| Region | Region name |
+
+## Notes
+
+- CloudTrail retains up to 90 days of event history
+- Searches may take a while if there are a large number of events
+- An API call is made for each region, so searching all regions takes time
+- Be mindful of AWS API rate limits
+
+## Troubleshooting
+
+### AWS CLI not found
+
+```bash
+# Check if AWS CLI is installed
+aws --version
+
+# If not installed:
+# macOS
+brew install awscli
+
+# Linux
+pip install awscli
+```
+
+### jq not found
+
+```bash
+# Install jq
+# macOS
+brew install jq
+
+# Linux
+sudo apt-get install jq
+# or
+sudo yum install jq
+```
+
+### Permission errors
+
+Make sure the script has execute permissions:
+
+```bash
+chmod +x research.sh
+```
+
+Verify your AWS permissions:
+- `cloudtrail:LookupEvents` is required
+- `ec2:DescribeRegions` is required
